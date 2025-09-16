@@ -31,7 +31,9 @@ function VideoSessionPage() {
     // Load session data
     const allBookings = JSON.parse(localStorage.getItem('mindcare_bookings') || '[]');
     const session = allBookings.find((booking: any) => 
-      booking.id === sessionId && booking.status === 'confirmed'
+      booking.id === sessionId && 
+      (booking.status === 'confirmed' || booking.status === 'pending_confirmation') &&
+      (booking.patientId === user?.id || booking.therapistId === user?.id || booking.therapistName === user?.name)
     );
     
     if (session) {
@@ -41,7 +43,7 @@ function VideoSessionPage() {
       // Set up participants
       setParticipants([
         { id: session.patientId, name: session.patientName, role: 'patient' },
-        { id: session.therapistId, name: session.therapistName, role: 'therapist' }
+        { id: session.therapistId || session.therapistName, name: session.therapistName, role: 'therapist' }
       ]);
       
       toast.success('Video session started!');

@@ -69,6 +69,7 @@ function LoginPage() {
               <p>Patient: patient@example.com / password</p>
               <p>Therapist: therapist@example.com / password</p>
               <p>Admin: admin@example.com / password</p>
+              <p className="mt-2 font-medium">Or use your registered account credentials</p>
             </div>
           </div>
         </div>

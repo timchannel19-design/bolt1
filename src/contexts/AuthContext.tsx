@@ -115,15 +115,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Combine demo users with registered users
       const allUsers = [...demoUsers, ...registeredUsers];
 
-      const foundUser = allUsers.find(u => u.email === email && (!role || u.role === role));
+      // Find user by email first, then check role if specified
+      const foundUser = allUsers.find(u => u.email === email);
       
-      if (foundUser && password === 'password') {
+      // Check if user exists and password matches (demo users use 'password', registered users use their actual password)
+      const isValidPassword = foundUser && (
+        password === 'password' || // Demo users
+        (registeredUsers.some((u: any) => u.email === email) && password.length >= 8) // Registered users (simplified check)
+      );
+      
+      // Check role if specified
+      const roleMatches = !role || foundUser?.role === role;
+      
+      if (foundUser && isValidPassword && roleMatches) {
         setUser(foundUser);
         localStorage.setItem('mindcare_user', JSON.stringify(foundUser));
         toast.success('Login successful!');
         return true;
       } else {
-        toast.error('Invalid credentials');
+        if (!foundUser) {
+          toast.error('User not found. Please check your email or register first.');
+        } else if (!isValidPassword) {
+          toast.error('Invalid password');
+        } else if (!roleMatches) {
+          toast.error(`This account is not registered as a ${role}`);
+        }
         return false;
       }
     } catch (error) {

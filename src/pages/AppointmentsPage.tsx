@@ -41,11 +41,14 @@ function AppointmentsPage() {
     const loadAppointments = () => {
       const allBookings = JSON.parse(localStorage.getItem('mindcare_bookings') || '[]');
       
-      // Filter appointments for current therapist by name matching
+      // Filter appointments for current therapist by both ID and name matching
       const therapistAppointments = allBookings
         .filter((booking: any) => {
-          // Match by therapist name since therapistId might not be set correctly
-          return booking.therapistName === user?.name || booking.therapistId === user?.id;
+          // Match by therapist name or ID, and ensure it's for this specific therapist
+          return (booking.therapistName === user?.name || 
+                  booking.therapistId === user?.id ||
+                  booking.therapistId === user?.name) && // Handle cases where name was used as ID
+                 booking.status !== 'cancelled'; // Don't show cancelled appointments
         })
         .map((booking: any) => ({
           id: booking.id,
@@ -55,7 +58,9 @@ function AppointmentsPage() {
           time: booking.time,
           duration: 50,
           type: 'Therapy Session',
-          status: booking.status === 'pending_confirmation' ? 'pending' : booking.status,
+          status: booking.status === 'pending_confirmation' ? 'pending' : 
+                  booking.status === 'confirmed' ? 'confirmed' :
+                  booking.status === 'completed' ? 'completed' : 'pending',
           sessionType: booking.sessionType || 'video',
           notes: booking.notes || ''
         }));
