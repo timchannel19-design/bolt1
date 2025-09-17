@@ -255,7 +255,27 @@ function ListServicePage() {
                     )}
                   </div>
                   <button className="absolute bottom-0 right-0 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white hover:bg-purple-600 transition-colors">
-                    <Camera className="w-4 h-4" />
+                    <label htmlFor="profile-photo-upload" className="cursor-pointer">
+                      <Camera className="w-4 h-4" />
+                    </label>
+                    <input
+                      id="profile-photo-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const result = event.target?.result as string;
+                            handleInputChange('profilePicture', result);
+                            toast.success('Profile photo uploaded successfully!');
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
                   </button>
                 </div>
                 <p className={`text-sm mt-2 ${
