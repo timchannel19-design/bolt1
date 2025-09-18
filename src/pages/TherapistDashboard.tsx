@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { 
   Calendar, Users, MessageSquare, BarChart3, Clock, Bell,
   Video, Phone, CheckCircle, AlertTriangle, TrendingUp,
-  DollarSign, Award, Heart, Target, Plus, Eye
+  DollarSign, Award, Heart, Target, Plus, Eye, Star
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
