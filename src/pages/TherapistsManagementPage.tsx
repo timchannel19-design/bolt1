@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   UserCheck, Search, Filter, Plus, Eye, Edit, Trash2, 
@@ -15,7 +15,7 @@ interface Therapist {
   email: string;
   phone: string;
   specialization: string[];
-  experience: number;
+  experience: string;
   licenseNumber: string;
   hourlyRate: number;
   rating: number;
@@ -27,6 +27,8 @@ interface Therapist {
   lastLogin: string;
   bio: string;
   languages: string[];
+  profilePicture?: string;
+  qualification?: string;
 }
 
 function TherapistsManagementPage() {
@@ -37,97 +39,125 @@ function TherapistsManagementPage() {
   const [filterSpecialization, setFilterSpecialization] = useState<string>('all');
   const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
   const [showTherapistModal, setShowTherapistModal] = useState(false);
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
 
-  const therapists: Therapist[] = [
-    {
-      id: '1',
-      name: 'Dr. Sarah Johnson',
-      email: 'sarah@example.com',
-      phone: '+1 (555) 123-4567',
-      specialization: ['CBT', 'Anxiety', 'Depression'],
-      experience: 8,
-      licenseNumber: 'LIC123456',
-      hourlyRate: 120,
-      rating: 4.9,
-      reviewCount: 127,
-      patientsCount: 28,
-      status: 'active',
-      verified: true,
-      joinDate: '2023-03-15',
-      lastLogin: '2024-01-15',
-      bio: 'Experienced clinical psychologist specializing in cognitive behavioral therapy.',
-      languages: ['English', 'Spanish']
-    },
-    {
-      id: '2',
-      name: 'Dr. Michael Chen',
-      email: 'michael@example.com',
-      phone: '+1 (555) 234-5678',
-      specialization: ['PTSD', 'Trauma', 'EMDR'],
-      experience: 12,
-      licenseNumber: 'LIC789012',
-      hourlyRate: 150,
-      rating: 4.8,
-      reviewCount: 89,
-      patientsCount: 22,
-      status: 'active',
-      verified: true,
-      joinDate: '2023-01-20',
-      lastLogin: '2024-01-14',
-      bio: 'Trauma specialist with extensive experience in EMDR therapy.',
-      languages: ['English', 'Mandarin']
-    },
-    {
-      id: '3',
-      name: 'Dr. Emily Rodriguez',
-      email: 'emily@example.com',
-      phone: '+1 (555) 345-6789',
-      specialization: ['Family Therapy', 'Couples', 'Relationships'],
-      experience: 10,
-      licenseNumber: 'LIC345678',
-      hourlyRate: 130,
-      rating: 4.7,
-      reviewCount: 156,
-      patientsCount: 35,
-      status: 'pending',
-      verified: false,
-      joinDate: '2024-01-10',
-      lastLogin: '2024-01-12',
-      bio: 'Family therapist dedicated to helping families build stronger relationships.',
-      languages: ['English', 'Spanish', 'Portuguese']
-    },
-    {
-      id: '4',
-      name: 'Dr. James Wilson',
-      email: 'james@example.com',
-      phone: '+1 (555) 456-7890',
-      specialization: ['Addiction', 'Substance Abuse', 'Recovery'],
-      experience: 15,
-      licenseNumber: 'LIC901234',
-      hourlyRate: 140,
-      rating: 4.9,
-      reviewCount: 203,
-      patientsCount: 18,
-      status: 'suspended',
-      verified: true,
-      joinDate: '2022-11-05',
-      lastLogin: '2024-01-08',
-      bio: 'Addiction counselor with 15 years of experience in recovery programs.',
-      languages: ['English']
-    }
-  ];
+  useEffect(() => {
+    loadTherapists();
+    
+    // Set up interval to refresh data
+    const interval = setInterval(loadTherapists, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadTherapists = () => {
+    // Load registered therapists
+    const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
+    const therapistUsers = registeredUsers.filter((u: any) => u.role === 'therapist');
+    
+    // Load approved therapist services
+    const therapistServices = JSON.parse(localStorage.getItem('mindcare_therapist_services') || '[]');
+    const approvedServices = therapistServices.filter((service: any) => service.status === 'approved');
+    
+    // Combine data from both sources
+    const combinedTherapists: Therapist[] = [];
+    
+    // Add demo therapists
+    const demoTherapists = [
+      {
+        id: '2',
+        name: 'Dr. Sarah Smith',
+        email: 'therapist@example.com',
+        phone: '+1 (555) 123-4567',
+        specialization: ['CBT', 'Anxiety', 'Depression'],
+        experience: '8 years',
+        licenseNumber: 'LIC123456',
+        hourlyRate: 120,
+        rating: 4.9,
+        reviewCount: 127,
+        patientsCount: 28,
+        status: 'active' as const,
+        verified: true,
+        joinDate: '2023-03-15',
+        lastLogin: '2024-01-15',
+        bio: 'Experienced clinical psychologist specializing in cognitive behavioral therapy.',
+        languages: ['English', 'Spanish'],
+        qualification: 'Ph.D. in Clinical Psychology'
+      }
+    ];
+    
+    combinedTherapists.push(...demoTherapists);
+    
+    // Add registered therapists
+    therapistUsers.forEach((therapistUser: any) => {
+      const service = approvedServices.find((s: any) => s.therapistId === therapistUser.id);
+      
+      const therapist: Therapist = {
+        id: therapistUser.id,
+        name: therapistUser.name,
+        email: therapistUser.email,
+        phone: therapistUser.phone || '+1 (555) 000-0000',
+        specialization: service?.specialization || [therapistUser.specialization || 'General Therapy'],
+        experience: service?.experience || '5 years',
+        licenseNumber: therapistUser.licenseNumber || 'LIC000000',
+        hourlyRate: service?.chargesPerSession || therapistUser.hourlyRate || 100,
+        rating: 4.5,
+        reviewCount: 0,
+        patientsCount: 0,
+        status: service ? 'active' : 'pending',
+        verified: !!service,
+        joinDate: therapistUser.joinDate || new Date().toISOString().split('T')[0],
+        lastLogin: new Date().toISOString().split('T')[0],
+        bio: service?.bio || 'Professional therapist committed to helping patients achieve mental wellness.',
+        languages: service?.languages || ['English'],
+        profilePicture: service?.profilePicture,
+        qualification: service?.qualification || therapistUser.qualification
+      };
+      
+      combinedTherapists.push(therapist);
+    });
+    
+    setTherapists(combinedTherapists);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-gray-100 text-gray-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'suspended': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300';
+      case 'inactive': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300';
+      case 'suspended': return 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300';
     }
   };
 
   const handleTherapistAction = (therapistId: string, action: string) => {
+    if (action === 'approved') {
+      // Update therapist status
+      const updatedTherapists = therapists.map(t => 
+        t.id === therapistId ? { ...t, status: 'active' as const, verified: true } : t
+      );
+      setTherapists(updatedTherapists);
+      
+      // Update registered users if it's a registered therapist
+      const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
+      const updatedUsers = registeredUsers.map((u: any) => 
+        u.id === therapistId ? { ...u, status: 'approved', verified: true } : u
+      );
+      localStorage.setItem('mindcare_registered_users', JSON.stringify(updatedUsers));
+    } else if (action === 'suspended') {
+      const updatedTherapists = therapists.map(t => 
+        t.id === therapistId ? { ...t, status: 'suspended' as const } : t
+      );
+      setTherapists(updatedTherapists);
+    } else if (action === 'deleted') {
+      const updatedTherapists = therapists.filter(t => t.id !== therapistId);
+      setTherapists(updatedTherapists);
+      
+      // Remove from registered users
+      const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
+      const updatedUsers = registeredUsers.filter((u: any) => u.id !== therapistId);
+      localStorage.setItem('mindcare_registered_users', JSON.stringify(updatedUsers));
+    }
+    
     toast.success(`Therapist ${action} successfully`);
   };
 
@@ -137,7 +167,7 @@ function TherapistsManagementPage() {
                          therapist.specialization.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = filterStatus === 'all' || therapist.status === filterStatus;
     const matchesSpecialization = filterSpecialization === 'all' || 
-                                  therapist.specialization.includes(filterSpecialization);
+                                  therapist.specialization.some(s => s.includes(filterSpecialization));
     return matchesSearch && matchesStatus && matchesSpecialization;
   });
 
@@ -162,13 +192,13 @@ function TherapistsManagementPage() {
     },
     {
       title: 'Average Rating',
-      value: '4.8',
+      value: therapists.length > 0 ? (therapists.reduce((sum, t) => sum + t.rating, 0) / therapists.length).toFixed(1) : '0',
       icon: Star,
       color: 'from-purple-500 to-pink-500'
     }
   ];
 
-  const specializations = ['All', 'CBT', 'PTSD', 'Trauma', 'Family Therapy', 'Addiction', 'EMDR'];
+  const specializations = ['All', 'CBT', 'PTSD', 'Trauma', 'Family Therapy', 'Addiction', 'EMDR', 'Anxiety', 'Depression'];
 
   return (
     <div className={`h-screen flex flex-col ${
@@ -313,8 +343,16 @@ function TherapistsManagementPage() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center space-x-3">
                   <div className="relative">
-                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                      <UserCheck className="w-6 h-6 text-purple-600" />
+                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
+                      {therapist.profilePicture ? (
+                        <img
+                          src={therapist.profilePicture}
+                          alt={therapist.name}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <UserCheck className="w-6 h-6 text-purple-600" />
+                      )}
                     </div>
                     {therapist.verified && (
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
@@ -366,7 +404,7 @@ function TherapistsManagementPage() {
                   <span className={`text-sm ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    {therapist.experience} years experience
+                    {therapist.experience}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -398,7 +436,7 @@ function TherapistsManagementPage() {
                   Specializations:
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  {therapist.specialization.map((spec, idx) => (
+                  {therapist.specialization.slice(0, 3).map((spec, idx) => (
                     <span
                       key={idx}
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -408,6 +446,13 @@ function TherapistsManagementPage() {
                       {spec}
                     </span>
                   ))}
+                  {therapist.specialization.length > 3 && (
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      +{therapist.specialization.length - 3} more
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -430,6 +475,15 @@ function TherapistsManagementPage() {
                         <span>Reject</span>
                       </button>
                     </>
+                  )}
+                  {therapist.status === 'active' && (
+                    <button
+                      onClick={() => handleTherapistAction(therapist.id, 'suspended')}
+                      className="flex items-center space-x-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors text-sm"
+                    >
+                      <AlertTriangle className="w-3 h-3" />
+                      <span>Suspend</span>
+                    </button>
                   )}
                 </div>
                 <div className="flex space-x-2">
@@ -543,6 +597,14 @@ function TherapistsManagementPage() {
                       <div>
                         <label className={`text-sm font-medium ${
                           theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>Qualification</label>
+                        <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                          {selectedTherapist.qualification || 'Not specified'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className={`text-sm font-medium ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                         }`}>License Number</label>
                         <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                           {selectedTherapist.licenseNumber}
@@ -553,7 +615,7 @@ function TherapistsManagementPage() {
                           theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                         }`}>Experience</label>
                         <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                          {selectedTherapist.experience} years
+                          {selectedTherapist.experience}
                         </p>
                       </div>
                       <div>

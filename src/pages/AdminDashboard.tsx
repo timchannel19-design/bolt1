@@ -104,7 +104,7 @@ function AdminDashboard() {
 
   const handleApproveTherapist = (id: string) => {
     const services = JSON.parse(localStorage.getItem('mindcare_therapist_services') || '[]');
-    const availableTherapists = JSON.parse(localStorage.getItem('mindcare_therapists') || '[]');
+    const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
     
     const serviceToApprove = services.find((s: any) => s.id === id);
     if (serviceToApprove) {
@@ -114,7 +114,14 @@ function AdminDashboard() {
       );
       localStorage.setItem('mindcare_therapist_services', JSON.stringify(updatedServices));
       
+      // Update the therapist's status in registered users
+      const updatedUsers = registeredUsers.map((u: any) => 
+        u.id === serviceToApprove.therapistId ? { ...u, status: 'approved', verified: true } : u
+      );
+      localStorage.setItem('mindcare_registered_users', JSON.stringify(updatedUsers));
+      
       // Add to available therapists for booking
+      const availableTherapists = JSON.parse(localStorage.getItem('mindcare_therapists') || '[]');
       const therapistForBooking = {
         id: serviceToApprove.therapistId,
         name: serviceToApprove.therapistName,

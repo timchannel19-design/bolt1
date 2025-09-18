@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Users, Search, Filter, Plus, Eye, Edit, Trash2, 
@@ -20,6 +20,12 @@ interface User {
   sessionsCount?: number;
   patientsCount?: number;
   verified: boolean;
+  age?: number;
+  emergencyContactEmail?: string;
+  emergencyContactRelation?: string;
+  specialization?: string;
+  licenseNumber?: string;
+  hourlyRate?: number;
 }
 
 function UsersPage() {
@@ -30,83 +36,136 @@ function UsersPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
 
-  const users: User[] = [
-    {
-      id: '1',
-      name: 'John Doe',
-      email: 'john@example.com',
-      role: 'patient',
-      status: 'active',
-      joinDate: '2023-06-15',
-      lastLogin: '2024-01-15',
-      sessionsCount: 24,
-      verified: true
-    },
-    {
-      id: '2',
-      name: 'Dr. Sarah Smith',
-      email: 'sarah@example.com',
-      role: 'therapist',
-      status: 'active',
-      joinDate: '2023-03-10',
-      lastLogin: '2024-01-15',
-      patientsCount: 28,
-      verified: true
-    },
-    {
-      id: '3',
-      name: 'Mike Wilson',
-      email: 'mike@example.com',
-      role: 'patient',
-      status: 'inactive',
-      joinDate: '2023-08-22',
-      lastLogin: '2023-12-20',
-      sessionsCount: 12,
-      verified: true
-    },
-    {
-      id: '4',
-      name: 'Dr. Emily Johnson',
-      email: 'emily@example.com',
-      role: 'therapist',
-      status: 'suspended',
-      joinDate: '2023-09-05',
-      lastLogin: '2024-01-10',
-      patientsCount: 15,
-      verified: false
-    },
-    {
-      id: '5',
-      name: 'Admin User',
-      email: 'admin@example.com',
-      role: 'admin',
-      status: 'active',
-      joinDate: '2023-01-01',
-      lastLogin: '2024-01-15',
-      verified: true
-    }
-  ];
+  useEffect(() => {
+    loadUsers();
+    
+    // Set up interval to refresh data
+    const interval = setInterval(loadUsers, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadUsers = () => {
+    // Load registered users
+    const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
+    
+    // Demo users
+    const demoUsers = [
+      {
+        id: '1',
+        name: 'John Doe',
+        email: 'patient@example.com',
+        role: 'patient' as const,
+        status: 'active' as const,
+        joinDate: '2023-06-15',
+        lastLogin: '2024-01-15',
+        sessionsCount: 24,
+        verified: true,
+        age: 28,
+        emergencyContactEmail: 'emergency@example.com',
+        emergencyContactRelation: 'parent'
+      },
+      {
+        id: '2',
+        name: 'Dr. Sarah Smith',
+        email: 'therapist@example.com',
+        role: 'therapist' as const,
+        status: 'active' as const,
+        joinDate: '2023-03-10',
+        lastLogin: '2024-01-15',
+        patientsCount: 28,
+        verified: true,
+        specialization: 'Cognitive Behavioral Therapy',
+        licenseNumber: 'LIC123456',
+        hourlyRate: 120
+      },
+      {
+        id: '3',
+        name: 'Admin User',
+        email: 'admin@example.com',
+        role: 'admin' as const,
+        status: 'active' as const,
+        joinDate: '2023-01-01',
+        lastLogin: '2024-01-15',
+        verified: true
+      }
+    ];
+
+    // Combine demo users with registered users
+    const allUsers = [...demoUsers];
+    
+    registeredUsers.forEach((regUser: any) => {
+      // Don't duplicate demo users
+      if (!demoUsers.some(demo => demo.email === regUser.email)) {
+        const userData: User = {
+          id: regUser.id,
+          name: regUser.name,
+          email: regUser.email,
+          role: regUser.role,
+          status: regUser.status === 'approved' ? 'active' : regUser.status === 'pending' ? 'inactive' : 'active',
+          joinDate: regUser.joinDate || new Date().toISOString().split('T')[0],
+          lastLogin: new Date().toISOString().split('T')[0],
+          verified: regUser.verified || false,
+          ...(regUser.age && { age: regUser.age }),
+          ...(regUser.emergencyContactEmail && { emergencyContactEmail: regUser.emergencyContactEmail }),
+          ...(regUser.emergencyContactRelation && { emergencyContactRelation: regUser.emergencyContactRelation }),
+          ...(regUser.specialization && { specialization: regUser.specialization }),
+          ...(regUser.licenseNumber && { licenseNumber: regUser.licenseNumber }),
+          ...(regUser.hourlyRate && { hourlyRate: regUser.hourlyRate }),
+          ...(regUser.role === 'patient' && { sessionsCount: 0 }),
+          ...(regUser.role === 'therapist' && { patientsCount: 0 })
+        };
+        allUsers.push(userData);
+      }
+    });
+
+    setUsers(allUsers);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-yellow-100 text-yellow-800';
-      case 'suspended': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300';
+      case 'inactive': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300';
+      case 'suspended': return 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300';
     }
   };
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-purple-100 text-purple-800';
-      case 'therapist': return 'bg-blue-100 text-blue-800';
-      case 'patient': return 'bg-teal-100 text-teal-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'admin': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300';
+      case 'therapist': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300';
+      case 'patient': return 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300';
     }
   };
 
   const handleUserAction = (userId: string, action: string) => {
+    if (action === 'suspended' || action === 'activated') {
+      const newStatus = action === 'suspended' ? 'suspended' : 'active';
+      
+      // Update local state
+      setUsers(prev => prev.map(u => 
+        u.id === userId ? { ...u, status: newStatus as any } : u
+      ));
+      
+      // Update registered users in localStorage
+      const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
+      const updatedUsers = registeredUsers.map((u: any) => 
+        u.id === userId ? { ...u, status: newStatus } : u
+      );
+      localStorage.setItem('mindcare_registered_users', JSON.stringify(updatedUsers));
+    } else if (action === 'deleted') {
+      // Remove from local state
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      
+      // Remove from registered users
+      const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
+      const updatedUsers = registeredUsers.filter((u: any) => u.id !== userId);
+      localStorage.setItem('mindcare_registered_users', JSON.stringify(updatedUsers));
+    }
+    
     toast.success(`User ${action} successfully`);
   };
 
@@ -488,6 +547,16 @@ function UsersPage() {
                           {selectedUser.status}
                         </span>
                       </div>
+                      {selectedUser.age && (
+                        <div>
+                          <label className={`text-sm font-medium ${
+                            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                          }`}>Age</label>
+                          <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                            {selectedUser.age} years
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -529,7 +598,7 @@ function UsersPage() {
                           </span>
                         </div>
                       </div>
-                      {selectedUser.role === 'patient' && selectedUser.sessionsCount && (
+                      {selectedUser.role === 'patient' && selectedUser.sessionsCount !== undefined && (
                         <div>
                           <label className={`text-sm font-medium ${
                             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
@@ -539,7 +608,7 @@ function UsersPage() {
                           </p>
                         </div>
                       )}
-                      {selectedUser.role === 'therapist' && selectedUser.patientsCount && (
+                      {selectedUser.role === 'therapist' && selectedUser.patientsCount !== undefined && (
                         <div>
                           <label className={`text-sm font-medium ${
                             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
@@ -549,9 +618,63 @@ function UsersPage() {
                           </p>
                         </div>
                       )}
+                      {selectedUser.role === 'therapist' && selectedUser.licenseNumber && (
+                        <div>
+                          <label className={`text-sm font-medium ${
+                            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                          }`}>License Number</label>
+                          <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                            {selectedUser.licenseNumber}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
+
+                {selectedUser.role === 'patient' && selectedUser.emergencyContactEmail && (
+                  <div className="mt-6">
+                    <h3 className={`text-lg font-semibold mb-4 ${
+                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    }`}>
+                      Emergency Contact
+                    </h3>
+                    <div className={`p-4 rounded-lg ${
+                      theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
+                    }`}>
+                      <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                        <strong>Email:</strong> {selectedUser.emergencyContactEmail}
+                      </p>
+                      {selectedUser.emergencyContactRelation && (
+                        <p className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                          <strong>Relationship:</strong> {selectedUser.emergencyContactRelation}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedUser.role === 'therapist' && selectedUser.specialization && (
+                  <div className="mt-6">
+                    <h3 className={`text-lg font-semibold mb-4 ${
+                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    }`}>
+                      Professional Information
+                    </h3>
+                    <div className={`p-4 rounded-lg ${
+                      theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
+                    }`}>
+                      <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                        <strong>Specialization:</strong> {Array.isArray(selectedUser.specialization) ? selectedUser.specialization.join(', ') : selectedUser.specialization}
+                      </p>
+                      {selectedUser.hourlyRate && (
+                        <p className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                          <strong>Hourly Rate:</strong> ${selectedUser.hourlyRate}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
