@@ -148,6 +148,18 @@ function TherapistsManagementPage() {
         t.id === therapistId ? { ...t, status: 'suspended' as const } : t
       );
       setTherapists(updatedTherapists);
+      
+      // Update registered users
+      const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
+      const updatedUsers = registeredUsers.map((u: any) => 
+        u.id === therapistId ? { ...u, status: 'suspended' } : u
+      );
+      localStorage.setItem('mindcare_registered_users', JSON.stringify(updatedUsers));
+      
+      // Remove from available therapists for booking
+      const availableTherapists = JSON.parse(localStorage.getItem('mindcare_therapists') || '[]');
+      const updatedAvailableTherapists = availableTherapists.filter((t: any) => t.id !== therapistId);
+      localStorage.setItem('mindcare_therapists', JSON.stringify(updatedAvailableTherapists));
     } else if (action === 'deleted') {
       const updatedTherapists = therapists.filter(t => t.id !== therapistId);
       setTherapists(updatedTherapists);
@@ -156,6 +168,16 @@ function TherapistsManagementPage() {
       const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
       const updatedUsers = registeredUsers.filter((u: any) => u.id !== therapistId);
       localStorage.setItem('mindcare_registered_users', JSON.stringify(updatedUsers));
+      
+      // Remove therapist services
+      const therapistServices = JSON.parse(localStorage.getItem('mindcare_therapist_services') || '[]');
+      const updatedServices = therapistServices.filter((s: any) => s.therapistId !== therapistId);
+      localStorage.setItem('mindcare_therapist_services', JSON.stringify(updatedServices));
+      
+      // Remove from available therapists for booking
+      const availableTherapists = JSON.parse(localStorage.getItem('mindcare_therapists') || '[]');
+      const updatedAvailableTherapists = availableTherapists.filter((t: any) => t.id !== therapistId);
+      localStorage.setItem('mindcare_therapists', JSON.stringify(updatedAvailableTherapists));
     }
     
     toast.success(`Therapist ${action} successfully`);

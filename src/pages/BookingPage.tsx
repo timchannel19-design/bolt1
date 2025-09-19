@@ -121,8 +121,15 @@ function BookingPage() {
     const therapistServices = JSON.parse(localStorage.getItem('mindcare_therapist_services') || '[]');
     const approvedServices = therapistServices.filter((service: any) => service.status === 'approved');
     
+    // Also check if the therapist user still exists and is active
+    const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
+    const activeApprovedServices = approvedServices.filter((service: any) => {
+      const therapistUser = registeredUsers.find((u: any) => u.id === service.therapistId);
+      return therapistUser && therapistUser.status !== 'deleted' && therapistUser.status !== 'suspended';
+    });
+    
     // Convert services to therapist format for booking
-    const availableTherapistsFromServices = approvedServices.map((service: any) => ({
+    const availableTherapistsFromServices = activeApprovedServices.map((service: any) => ({
       id: service.therapistId,
       name: service.therapistName,
       title: service.qualification,
@@ -142,8 +149,14 @@ function BookingPage() {
     // Load existing therapists from localStorage and merge with services
     const existingTherapists = JSON.parse(localStorage.getItem('mindcare_therapists') || '[]');
     
+    // Filter out deleted/suspended therapists from existing list
+    const activeExistingTherapists = existingTherapists.filter((therapist: any) => {
+      const therapistUser = registeredUsers.find((u: any) => u.id === therapist.id);
+      return !therapistUser || (therapistUser.status !== 'deleted' && therapistUser.status !== 'suspended');
+    });
+    
     // Combine and deduplicate
-    const allTherapists = [...existingTherapists];
+    const allTherapists = [...activeExistingTherapists];
     availableTherapistsFromServices.forEach((serviceTherapist: any) => {
       const existingIndex = allTherapists.findIndex((t: any) => t.id === serviceTherapist.id);
       if (existingIndex >= 0) {

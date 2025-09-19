@@ -156,6 +156,20 @@ function UsersPage() {
         u.id === userId ? { ...u, status: newStatus } : u
       );
       localStorage.setItem('mindcare_registered_users', JSON.stringify(updatedUsers));
+      
+      // Update therapist services status
+      const therapistServices = JSON.parse(localStorage.getItem('mindcare_therapist_services') || '[]');
+      const updatedServices = therapistServices.map((s: any) => 
+        s.therapistId === userId ? { ...s, status: newStatus === 'suspended' ? 'suspended' : 'approved' } : s
+      );
+      localStorage.setItem('mindcare_therapist_services', JSON.stringify(updatedServices));
+      
+      // Update available therapists for booking
+      if (newStatus === 'suspended') {
+        const availableTherapists = JSON.parse(localStorage.getItem('mindcare_therapists') || '[]');
+        const updatedAvailableTherapists = availableTherapists.filter((t: any) => t.id !== userId);
+        localStorage.setItem('mindcare_therapists', JSON.stringify(updatedAvailableTherapists));
+      }
     } else if (action === 'deleted') {
       // Remove from local state
       setUsers(prev => prev.filter(u => u.id !== userId));
@@ -164,6 +178,16 @@ function UsersPage() {
       const registeredUsers = JSON.parse(localStorage.getItem('mindcare_registered_users') || '[]');
       const updatedUsers = registeredUsers.filter((u: any) => u.id !== userId);
       localStorage.setItem('mindcare_registered_users', JSON.stringify(updatedUsers));
+      
+      // Remove therapist services
+      const therapistServices = JSON.parse(localStorage.getItem('mindcare_therapist_services') || '[]');
+      const updatedServices = therapistServices.filter((s: any) => s.therapistId !== userId);
+      localStorage.setItem('mindcare_therapist_services', JSON.stringify(updatedServices));
+      
+      // Remove from available therapists for booking
+      const availableTherapists = JSON.parse(localStorage.getItem('mindcare_therapists') || '[]');
+      const updatedAvailableTherapists = availableTherapists.filter((t: any) => t.id !== userId);
+      localStorage.setItem('mindcare_therapists', JSON.stringify(updatedAvailableTherapists));
     }
     
     toast.success(`User ${action} successfully`);
